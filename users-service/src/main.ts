@@ -5,9 +5,11 @@ import {
 } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 
 import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -27,6 +29,13 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  await app.register(helmet);
+
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  });
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Users Service')
