@@ -5,9 +5,9 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { PaginatedResponseDto } from './common';
-import { User } from '../schemas/user';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+import { PaginatedResponseDto } from './common';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -77,4 +77,4 @@ export class UserResponseDto {
   createdAt: Date;
 }
 
-export type PaginatedUsersResponseDto = PaginatedResponseDto<User>;
+export type PaginatedUsersResponseDto = PaginatedResponseDto<UserResponseDto>;

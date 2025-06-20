@@ -1,15 +1,15 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+
 import { UsersService } from './users.service';
 import {
   CreateUserDto,
@@ -20,10 +20,8 @@ import {
 import {
   PaginatedResponseDto,
   PaginationQueryDto,
-  UserParamsDto,
+  ParamsDto,
 } from './dto/common';
-import { User } from './schemas/user';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ErrorResponseDto } from './dto/error';
 
 @Controller('users')
@@ -45,7 +43,7 @@ export class UsersController {
       'Bad Request. The user could not be created due to validation errors.',
     type: ErrorResponseDto,
   })
-  createUser(@Body() createUserDto: CreateUserDto): Promise<User> {
+  createUser(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
     return this.usersService.createUser(createUserDto);
   }
 
@@ -54,7 +52,7 @@ export class UsersController {
   @ApiResponse({
     status: 200,
     description: 'List of users retrieved successfully',
-    type: PaginatedResponseDto<User>,
+    type: PaginatedResponseDto<UserResponseDto>,
   })
   findAll(
     @Query() query: PaginationQueryDto,
@@ -74,7 +72,7 @@ export class UsersController {
     description: 'User not found',
     type: ErrorResponseDto,
   })
-  findOne(@Param() params: UserParamsDto): Promise<User | null> {
+  findOne(@Param() params: ParamsDto): Promise<UserResponseDto | null> {
     return this.usersService.findOne(params.id);
   }
 
@@ -97,9 +95,9 @@ export class UsersController {
     type: ErrorResponseDto,
   })
   updateUser(
-    @Param() params: UserParamsDto,
+    @Param() params: ParamsDto,
     @Body() updateUserDto: UpdateUserDto,
-  ): Promise<User | null> {
+  ): Promise<UserResponseDto | null> {
     return this.usersService.updateUser(params.id, updateUserDto);
   }
 
@@ -114,7 +112,7 @@ export class UsersController {
     description: 'User not found',
     type: ErrorResponseDto,
   })
-  removeUser(@Param() params: UserParamsDto): Promise<void> {
+  removeUser(@Param() params: ParamsDto): Promise<void> {
     return this.usersService.removeUser(params.id);
   }
 }

@@ -7,19 +7,33 @@ import {
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 
+import { MessageService } from 'src/message/message.service';
 import {
   CreateUserDto,
   PaginatedUsersResponseDto,
   UpdateUserDto,
+  UserResponseDto,
 } from './dto/user';
 import { User, UserDocument } from './schemas/user';
 import { PaginationQueryDto } from './dto/common';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private readonly messageService: MessageService,
+  ) {}
 
-  async createUser(createUserDto: CreateUserDto): Promise<User> {
+  private transformUser(user: UserDocument): UserResponseDto {
+    return {
+      id: user._id as unknown as string,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+    };
+  }
+
+  async createUser(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     const existingUser = await this.userModel
       .findOne({ email: createUserDto.email })
       .exec();
@@ -30,8 +44,13 @@ export class UsersService {
     }
 
     const createdUser = new this.userModel(createUserDto);
+    const savedUser = await createdUser.save();
 
-    return createdUser.save();
+    const userResponse = this.transformUser(savedUser);
+
+    this.messageService.sendUserCreatedMessage(userResponse);
+
+    return userResponse;
   }
 
   async findAll(query: PaginationQueryDto): Promise<PaginatedUsersResponseDto> {
@@ -45,7 +64,7 @@ export class UsersService {
     ]);
 
     return {
-      items: users,
+      items: users.map((user) => this.transformUser(user)),
       total,
       page,
       limit,
@@ -53,14 +72,16 @@ export class UsersService {
     };
   }
 
-  async findOne(id: string): Promise<User | null> {
-    return this.userModel.findById(id).exec();
+  async findOne(id: string): Promise<UserResponseDto | null> {
+    const user = await this.userModel.findById(id).exec();
+
+    return user ? this.transformUser(user) : null;
   }
 
   async updateUser(
     id: string,
     updateUserDto: UpdateUserDto,
-  ): Promise<User | null> {
+  ): Promise<UserResponseDto | null> {
     if (updateUserDto.email) {
       const existingUser = await this.userModel
         .findOne({
@@ -87,7 +108,7 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return updatedUser;
+    return this.transformUser(updatedUser);
   }
 
   async removeUser(id: string): Promise<void> {
@@ -95,6 +116,10 @@ export class UsersService {
     if (!deletedUser) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
+
+    const userResponse = this.transformUser(deletedUser);
+
+    this.messageService.sendUserDeletedMessage(userResponse);
 
     return;
   }

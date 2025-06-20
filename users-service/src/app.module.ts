@@ -1,18 +1,24 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-
-import { UsersService } from './users/users.service';
-import { User, UserSchema } from './users/schemas/user';
-import { UsersController } from './users/users.controller';
+import { UsersModule } from './users/users.module';
+import { HealthModule } from './health/health.module';
+import { ConfigModule } from './config/config.module';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(
-      process.env.MONGO_URI || 'mongodb://localhost:27017/users',
-    ),
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    ConfigModule,
+    MongooseModule.forRootAsync({
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.get<string>('app.database.uri'),
+      }),
+      inject: [ConfigService],
+    }),
+    UsersModule,
+    HealthModule,
+    ConfigModule,
   ],
-  controllers: [UsersController],
-  providers: [UsersService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

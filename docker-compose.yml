@@ -1,34 +1,24 @@
 services:
-  users-service:
-    build:
-      context: ./users-service
-      dockerfile: Dockerfile
-    container_name: users-service
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
     ports:
-      - '3001:3001'
+      - '5672:5672'
+      - '15672:15672'
     environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - MONGO_URI=mongodb://mongo:27017/users
-    depends_on:
-      - mongo
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
     networks:
       - app-network
     restart: unless-stopped
-
-  notification-service:
-    build:
-      context: ./notification-service
-      dockerfile: Dockerfile
-    container_name: notification-service
-    ports:
-      - '3002:3002'
-    environment:
-      - NODE_ENV=production
-      - PORT=3002
-    networks:
-      - app-network
-    restart: unless-stopped
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   mongo:
     image: mongo:7.0
@@ -43,8 +33,62 @@ services:
       - app-network
     restart: unless-stopped
 
+  users-service:
+    build:
+      context: ./users-service
+      dockerfile: Dockerfile
+    container_name: users-service
+    ports:
+      - '3001:3001'
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGO_URI=mongodb://mongo:27017/users
+      - RABBITMQ_URI=amqp://user:password@rabbitmq:5672
+      - USERS_EXCHANGE_NAME=users_events
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - '3002:3002'
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - RABBITMQ_URI=amqp://user:password@rabbitmq:5672
+      - USERS_EXCHANGE_NAME=users_events
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3002/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
 volumes:
   mongo-data:
+  rabbitmq-data:
 
 networks:
   app-network:

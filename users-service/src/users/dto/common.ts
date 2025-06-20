@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsMongoId, IsOptional, IsPositive, Max, Min } from 'class-validator';
 
-export class UserParamsDto {
+export class ParamsDto {
   @ApiProperty({
     description: 'The unique identifier of the user',
     example: '60c72b2f9b1e8b001c8f8e1',
