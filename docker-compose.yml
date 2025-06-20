@@ -9,6 +9,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - MONGO_URI=mongodb://mongo:27017/users
+    depends_on:
+      - mongo
     networks:
       - app-network
     restart: unless-stopped
@@ -26,6 +29,22 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
+    ports:
+      - '27017:27017'
+    environment:
+      - MONGO_INITDB_DATABASE=users
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
 
 networks:
   app-network:
